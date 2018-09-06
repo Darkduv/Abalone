@@ -4,6 +4,8 @@ from time import gmtime, asctime
 
 
 def my_print(*args, **kwargs):
+    """for the moment critical information (when a bug occurs for example)"""
+    """is displayed in the 'console' of your Python editor, with information on the date."""
     print("-", asctime(gmtime()), "GMT", ":", end="\n   ")
     print(*args, **kwargs)
 
