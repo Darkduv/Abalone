@@ -33,7 +33,6 @@ class AbaloneGrid(list):
 
     def __init__(self, normal=True):
         """
-
         :type self: list
         """
         grid = [[0] * 9] * 9  # 0 = vacuum case
@@ -432,8 +431,8 @@ class Panel(Frame):
 class Ping(Frame):
     """corps principal du programme"""
 
-    def __init__(self):
-        Frame.__init__(self)
+    def __init__(self, root):
+        Frame.__init__(self, root)
         self.master.geometry("900x750")
         self.master.title(" Game of abalone")
 
@@ -445,7 +444,12 @@ class Ping(Frame):
 
         self.pack()
 
-    def reset(self):
+        root.bind("<Command-z>", self.undo)
+        root.bind("<Command-r>", self.reset)
+
+        self.pack()
+
+    def reset(self, event=None):
         """  french!  """
         self.jeu.history = SuperList()
         self.jeu.state = AbaloneGrid(self.jeu.mode)
@@ -471,7 +475,7 @@ class Ping(Frame):
                 text="Jeu de Abalone 3.3\n\n Maximin Duvillard \n Last update : 30/06/2018"
                      "Licence = None").pack(padx=10, pady=10)
 
-    def undo(self):
+    def undo(self, event=None):
         state = self.jeu.history.pop()
         self.jeu.state = state[0]
         self.jeu.counter = state[1].copy()
@@ -490,4 +494,6 @@ class Ping(Frame):
 
 
 if __name__ == '__main__':
-    Ping().mainloop()
+    game = Tk()
+    Pg = Ping(game)
+    Pg.mainloop()
