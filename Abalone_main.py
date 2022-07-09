@@ -2,7 +2,7 @@ from math import sqrt
 from tkinter import *
 
 from Abalone.AbaloneGrid import *
-from SuperMatrix import *
+from super_matrix import *
 
 
 ###########################################
