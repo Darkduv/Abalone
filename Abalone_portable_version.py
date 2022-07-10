@@ -53,7 +53,7 @@ class AbaloneGrid(list):
             grid[6] = [0, 2, 2, 0, 1, 1, 0, None, None]
             grid[7] = [2, 2, 2, 1, 1, 1, None, None, None]
             grid[8] = [2, 2, 0, 1, 1, None, None, None, None]
-        list.__init__(self, grid)
+        super().__init__(grid)
 
     def __getitem__(self, item):
         try:
@@ -123,7 +123,7 @@ class MenuBar(Frame):
     """bar of menu rolling"""
 
     def __init__(self, boss=None):
-        Frame.__init__(self, borderwidth=2, relief=GROOVE)
+        super().__init__(borderwidth=2, relief=GROOVE)
         # #### Menu <File> #####
         file_menu = Menubutton(self, text='File')
         file_menu.pack(side=LEFT, padx=5)
@@ -166,7 +166,7 @@ class Panel(Frame):
         # grid,we calculate the tallest size possible for the
         # cases (squared) of the grid, et the dimensions of the
         # canvas are adapted in consequence.
-        Frame.__init__(self)
+        super().__init__()
         self.mode = True  # Split=False or Normal=True
         self.n_lig, self.n_col = 9, 9  # initial grid = 9 x 9
         self.state = AbaloneGrid()
@@ -432,7 +432,7 @@ class Ping(Frame):
     """corps principal du programme"""
 
     def __init__(self, root):
-        Frame.__init__(self, root)
+        super().__init__(root)
         self.master.geometry("900x750")
         self.master.title(" Game of abalone")
 

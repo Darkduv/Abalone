@@ -18,7 +18,7 @@ class AbaloneGrid(list):
         grid[6] = [0, 0, 2, 2, 2, 0, 0, None, None]
         grid[7] = [2, 2, 2, 2, 2, 2, None, None, None]
         grid[8] = [2, 2, 2, 2, 2, None, None, None, None]
-        list.__init__(self, grid)
+        super().__init__(grid)
 
     def __getitem__(self, item):
         try:

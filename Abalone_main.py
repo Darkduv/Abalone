@@ -22,7 +22,7 @@ class MenuBar(Frame):
     """bar of menu rolling"""
 
     def __init__(self, boss=None):
-        Frame.__init__(self, borderwidth=2, relief=GROOVE)
+        super().__init__(borderwidth=2, relief=GROOVE)
         # #### Menu <File> #####
         file_menu = Menubutton(self, text='File')
         file_menu.pack(side=LEFT, padx=5)
@@ -55,7 +55,7 @@ class Panel(Frame):
         # grid,we calculate the tallest size possible for the
         # cases (squared) of the grid, et the dimensions of the
         # canvas are adapted in consequence.
-        Frame.__init__(self)
+        super().__init__()
         self.n_lig, self.n_col = 9, 9  # initial grid = 9 x 9
         self.state = AbaloneGrid()
         # Link of the event <resize> with an adapted manager :
@@ -276,7 +276,7 @@ class Ping(Frame):
     """corps principal du programme"""
 
     def __init__(self):
-        Frame.__init__(self)
+        super().__init__()
         self.master.geometry("900x750")
         self.master.title(" Game of abalone")
 
