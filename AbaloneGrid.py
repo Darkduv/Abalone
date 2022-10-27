@@ -215,6 +215,9 @@ class AbaloneGame(tools.GameNPlayer):
             if nb2 >= nb:
                 raise tools.InvalidActionError(
                     "Must have strict avantage to push opponent")
+        if self.grid.in_grid(pos2) and self.grid[pos2] != self._not_a_player:
+            raise tools.InvalidActionError(
+                "Can't push, one of their own marble is blocking")
         return TypeAction.INLINE, nb+nb2
 
     def can_play(self) -> bool:
