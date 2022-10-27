@@ -215,6 +215,7 @@ class Panel(tkinter.Frame):
         pass
 
     def move(self):
+        # todo : for the moment saving blindly, check if move is possible ?
         self.history.save_new([self.state.copy(), self.counter.copy()])
         l2, c2 = self.several_x_y[1]
         l1, c1 = self.several_x_y[0][0]
@@ -257,74 +258,61 @@ class Panel(tkinter.Frame):
             self.trace_grille()
 
     def verify2(self, lig, col):
-        if len(self.several_x_y[0]) == 1:
-            x, y = self.several_x_y[0][0]
-            l, c = lig - x, col - y  # todo : here for legal move of one case ?
-            if abs(l) > 1 or abs(c) > 1:
-                my_print("Too long move")
-                return False
-            if self.state[lig, col] == 0 and [l, c] in self.tte_directions:
-                return True
-            else:
-                if self.state[lig, col] != self.player:
-                    return False
-                else:
-                    try:
-                        nb_player = 1
-                        while self.state[(x + l, y + c)] == self.player:
-                            x += l
-                            y += c
-                            nb_player += 1
-                            if nb_player > 3:
-                                return False
-                        if self.state[x+l, y+c] == 0:
-                            return True
-                        else:
-                            try:
-                                nb_enemy = 0
-                                while nb_enemy < nb_player and self.state[x+l, y+c] == (self.player % 2 + 1):
-                                    nb_enemy += 1
-                                    x += l
-                                    y += c
-                                if nb_enemy >= nb_player:
-                                        my_print("it's forbidden")
-                                        return False
-                                else:
-                                    return True
-                            except IndexError:
-                                my_print("... ... ...")
-                                return True
-                    except IndexError:
-                        return False
-        else:
-            x, y = self.several_x_y[0][0]
-            d1, d2 = lig - x, col - y
-            if abs(d1) > 1 or abs(d2) > 1:   # todo : here for legal move of one case ?
-                my_print("Too long move")
-                return False
+        x, y = self.several_x_y[0][0]
+        l, c = lig - x, col - y  # todo : here for legal move of one case ?
+        if [l, c] not in self.tte_directions:
+            my_print("Too long move")
+            return False
+        if len(self.several_x_y[0]) != 1:
             for [i, j] in self.several_x_y[0]:
-                if self.state[i + d1, j + d2] != 0:
+                if self.state[i + l, j + c] != 0:
                     return False
             return True
+        # else:
+        if self.state[lig, col] == 0:
+            return True
+        if self.state[lig, col] != self.player:
+            return False
+        nb_player = 1
+        try:
+            while self.state[(x + l, y + c)] == self.player:
+                x += l
+                y += c
+                nb_player += 1
+                if nb_player > 3:
+                    return False
+        except IndexError:
+            return False
+        nb_enemy = 0
+        try:
+            while nb_enemy < nb_player \
+                    and self.state[x+l, y+c] == (self.player % 2 + 1):
+                nb_enemy += 1
+                x += l
+                y += c
+        except IndexError:  # pushing opponent's marble outside
+            my_print("... ... ...")
+            return True
+        if nb_enemy >= nb_player:
+            my_print("it's forbidden")
+            return False
+        if self.state[x+l, y+c] == self.player:
+            return False
+        return True
 
     def verify1(self, lig, col):
         if self.state[lig, col] != self.player:
             return False
-        else:
-            x, y = self.several_x_y[0][-1]
-            if not [lig - x, col - y] in self.tte_directions:
-                return False
-            else:
-                if len(self.several_x_y[0]) >= 3:
-                    return False
-                elif len(self.several_x_y[0]) == 2:
-                    d1, d2 = lig - x, col - y
-                    x1, y1 = self.several_x_y[0][0]
-                    if x - x1 == d1 and y - y1 == d2:
-                        return True
-                    else:
-                        return True
-                return True
+        x, y = self.several_x_y[0][-1]
+        d1, d2 = lig - x, col - y
+        if not [d1, d2] in self.tte_directions:
+            return False
+        if len(self.several_x_y[0]) >= 3:
+            return False
+        if len(self.several_x_y[0]) == 2:
+            x1, y1 = self.several_x_y[0][0]
+            return x - x1 == d1 and y - y1 == d2
+        return True
 
 
 class AbaloneGUI(tkinter.Tk):
