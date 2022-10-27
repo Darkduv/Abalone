@@ -1,30 +1,38 @@
 class AbaloneGrid(list):
-    def __new__(cls):
+    def __new__(cls, *args):
         instance = list.__new__(cls)
         return instance
 
-    def __init__(self):
+    def __init__(self, normal=True):
         """
 
         :type self: list
         """
         grid = [[0] * 9] * 9  # 0 = vacuum case
-        grid[0] = [None, None, None, None, 1, 1, 1, 1, 1]
-        grid[1] = [None, None, None, 1, 1, 1, 1, 1, 1]
-        grid[2] = [None, None, 0, 0, 1, 1, 1, 0, 0]
         grid[3] = [None, 0, 0, 0, 0, 0, 0, 0, 0]
-        grid[4] = [0] * 9
         grid[5] = [0, 0, 0, 0, 0, 0, 0, 0, None]
-        grid[6] = [0, 0, 2, 2, 2, 0, 0, None, None]
-        grid[7] = [2, 2, 2, 2, 2, 2, None, None, None]
-        grid[8] = [2, 2, 2, 2, 2, None, None, None, None]
+        if normal:
+            grid[0] = [None, None, None, None, 1, 1, 1, 1, 1]
+            grid[1] = [None, None, None, 1, 1, 1, 1, 1, 1]
+            grid[2] = [None, None, 0, 0, 1, 1, 1, 0, 0]
+            grid[6] = [0, 0, 2, 2, 2, 0, 0, None, None]
+            grid[7] = [2, 2, 2, 2, 2, 2, None, None, None]
+            grid[8] = [2, 2, 2, 2, 2, None, None, None, None]
+
+        else:
+            grid[0] = [None, None, None, None, 1, 1, 0, 2, 2]
+            grid[1] = [None, None, None, 1, 1, 1, 2, 2, 2]
+            grid[2] = [None, None, 0, 1, 1, 0, 2, 2, 0]
+            grid[6] = [0, 2, 2, 0, 1, 1, 0, None, None]
+            grid[7] = [2, 2, 2, 1, 1, 1, None, None, None]
+            grid[8] = [2, 2, 0, 1, 1, None, None, None, None]
         super().__init__(grid)
 
     def __getitem__(self, item):
         try:
             i, j = item
             if i < 0 or j < 0:
-                raise IndexError("Out of Grid")
+                raise IndexError("Out of the grid")
             if list.__getitem__(self, i)[j] is None:
                 raise IndexError("Out of the grid")
             else:
