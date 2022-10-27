@@ -1,9 +1,12 @@
 from math import sqrt
-from tkinter import *
+import tkinter
 from time import gmtime, asctime
 
-from Abalone.AbaloneGrid import *
-from super_matrix import *
+from Abalone.AbaloneGrid import AbaloneGrid
+
+from game_tools import gui, tools
+# see https://github.com/Darkduv/Games # game_tools
+
 
 def my_print(*args, **kwargs):
     """for the moment critical information (when a bug occurs for example)
@@ -29,47 +32,9 @@ def my_print(*args, **kwargs):
 #  - Licence : ???                        #
 ###########################################
 
-# TODO  very awkward implementation of the moves ???
-
-class MenuBar(Frame):
-    """bar of menu rolling"""
-
-    def __init__(self, boss=None):
-        super().__init__(borderwidth=2, relief=GROOVE)
-        # #### Menu <File> #####
-        file_menu = Menubutton(self, text='File')
-        file_menu.pack(side=LEFT, padx=5)
-        me1 = Menu(file_menu)
-        me1.add_command(label='Restart', underline=0,
-                        command=boss.reset)
-        me1.add_command(label='Quit', underline=0,
-                        command=boss.quit)
-        me1.add_command(label='Undo', underline=0,
-                        command=boss.undo)
-        file_menu.configure(menu=me1)
-
-        # #### Menu <Help> #####
-        help_menu = Menubutton(self, text='Help')
-        help_menu.pack(side=LEFT, padx=5)
-        me1 = Menu(help_menu)
-        me1.add_command(label='Principe of the game', underline=0,
-                        command=boss.principe)
-        me1.add_command(label='By the way ...', underline=0,
-                        command=boss.by_the_way)
-        help_menu.configure(menu=me1)
-
-        # #### Menu <Option> #####
-        option_menu = Menubutton(self, text='Option')
-        option_menu.pack(side=LEFT, padx=5)
-        me1 = Menu(option_menu)
-        me1.add_command(label='Normal', underline=0,
-                        command=boss.normal)
-        me1.add_command(label='Split', underline=0,
-                        command=boss.split)
-        option_menu.configure(menu=me1)
 
 
-class Panel(Frame):
+class Panel(tkinter.Frame):
     """Panel de jeu (grille de n x m cases)"""
 
     def __init__(self):
@@ -86,8 +51,9 @@ class Panel(Frame):
         # Link of the event <resize> with an adapted manager :
         self.bind("<Configure>", self.rescale)
         # Canvas :
-        self.can = Canvas(self, bg="dark olive green", borderwidth=0,
-                          highlightthickness=1, highlightbackground="white")
+        self.can = tkinter.Canvas(
+            self, bg="dark olive green", borderwidth=0,
+            highlightthickness=1, highlightbackground="white")
         self.width, self.height = 2, 2
         self.cote = 0
 
@@ -97,11 +63,12 @@ class Panel(Frame):
         self.can.bind("<Button-1>", self.click)
         self.can.bind("<Button1-Motion>", self.mouse_move)
         self.can.bind("<Button1-ButtonRelease>", self.mouse_up)
-        self.can.pack(side=LEFT)
+        self.can.pack(side=tkinter.LEFT)
         # self.can_bis = Label(text="player 1")
         # self.can_bis.pack(side=RIGHT)
-        self.can_bis = Canvas(self, bg="white", borderwidth=0,
-                              highlightthickness=1, highlightbackground="white")
+        self.can_bis = tkinter.Canvas(self, bg="white", borderwidth=0,
+                                      highlightthickness=1,
+                                      highlightbackground="white")
         self.turn = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 3,
                                              text="White's\n turn", font="Helvetica 18 bold")
         self.print_score = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 5,
@@ -113,15 +80,14 @@ class Panel(Frame):
         y2 = y + x1
         self.turn_bis = self.can_bis.create_oval(x1, y1, x2, y2, outline="red", width=1, fill="white")
         # self.can_bis = Label(text="Red's\n turn")
-        self.can_bis.pack(side=RIGHT)
+        self.can_bis.pack(side=tkinter.RIGHT)
         self.player = 1
         self.counter = [0, 0]
         self.direction = [None, None]
         self.tte_directions = [[-1, 0], [-1, 1], [1, -1], [0, 1], [0, -1], [1, 0]]
         # [[-1, 0], [-1, 1], [-1, -1], [0, 1], [0, -1], [1, -1]]  # TODO : ?
         # Todo : why not same list ?
-        self.history = SuperList()
-        self.history.append([self.state.copy(), self.counter])
+        self.history = tools.SimpleHistoric()
         self.init_jeu()
 
     def init_jeu(self):
@@ -147,7 +113,7 @@ class Panel(Frame):
         wide, high = self.cote * self.n_col, self.cote * self.n_lig
         self.can.configure(width=wide, height=high)
         # Layout of the grid:
-        self.can.delete(ALL)  # erasing of the past Layouts
+        self.can.delete(tkinter.ALL)  # erasing of the past Layouts
         # Layout of all the pawns,
         #   white or black according to the state of the game :
         for l in range(self.n_lig):
@@ -238,7 +204,7 @@ class Panel(Frame):
         pass
 
     def move(self):
-        self.history.append([self.state.copy(), self.counter.copy()])
+        self.history.save_new([self.state.copy(), self.counter.copy()])
         l2, c2 = self.several_x_y[1]
         l1, c1 = self.several_x_y[0][0]
         direction = l2 - l1, c2 - c1
@@ -350,56 +316,61 @@ class Panel(Frame):
                 return True
 
 
-class Ping(Frame):
+class AbaloneGUI(tkinter.Tk):
     """corps principal du programme"""
 
-    def __init__(self, root):
-        super().__init__(root)
-        self.master.geometry("900x750")
-        self.master.title(" Game of abalone")
+    def __init__(self):
+        super().__init__()
+        self.geometry("900x750")
+        self.title(" Game of abalone")
 
-        self.m_bar = MenuBar(self)
-        self.m_bar.pack(side=TOP, expand=NO, fill=X)
+        menu_config = [
+            ('File', [('Restart', self.reset),
+                      ('Quit', self.destroy),
+                      ('Undo', self.undo)]),
+            ('Help', [('Principle of the game', self.principle),
+                      ('About...', self.about)]),
+            ('Options', [('Normal', self.normal_mode),
+                         ('Split', self.split_mode)])
+        ]
+        # add options borderwidth=2, relief=GROOVE to Menu ?
+        self.m_bar = gui.RecursiveMenuBar(self)
+        self.m_bar.config_menu(menu_config)
 
         self.jeu = Panel()
-        self.jeu.pack(expand=YES, fill=BOTH, padx=8, pady=8)
+        self.jeu.pack(expand=tkinter.YES, fill=tkinter.BOTH, padx=8, pady=8)
 
-        self.pack()
-
-        root.bind("<Command-z>", self.undo)
-        root.bind("<Command-r>", self.reset)
-
-        self.pack()
+        self.bind("<Command-z>", self.undo)
+        self.bind("<Command-r>", self.reset)
 
     def reset(self, event=None):
         """  french!  """
-        self.jeu.history = SuperList()
+        self.jeu.history = tools.SimpleHistoric()
         self.jeu.state = AbaloneGrid(self.jeu.mode)
         self.jeu.counter = [0, 0]
-        self.jeu.history.append([self.jeu.state, self.jeu.counter])
         self.jeu.player = 1
         self.jeu.init_jeu()
 
-    def principe(self):
-        """window-message containing the small description of the principe of this game"""
-        msg = Toplevel(self)
-        Message(msg, bg="navy", fg="ivory", width=400,
-                font="Helvetica 10 bold",
-                text="Put six marbles of the adversary "
-                     "out of the grid\n\n"
-                     "Réf : MAXIMIN PUISSANT") \
+    def principle(self):
+        """Small description of the principle of this game"""
+        msg = tkinter.Toplevel(self)
+        tkinter.Message(msg, bg="navy", fg="ivory", width=400,
+                        font="Helvetica 10 bold",
+                        text="Put six marbles of the adversary "
+                             "out of the grid\n\n"
+                             "Réf : MAXIMIN PUISSANT") \
             .pack(padx=10, pady=10)
 
-    def by_the_way(self):
-        """window-message indicating the author and the type of licence"""
-        msg = Toplevel(self)
-        Message(msg, width=200, aspect=100, justify=CENTER,
-                text="Jeu de Abalone 3.3\n\n Maximin Duvillard"
-                "\n Last update : 30/06/2018"
-                "\n Licence = None").pack(padx=10, pady=10)
+    def about(self):
+        """About the development : author and type of licence"""
+        msg = tkinter.Toplevel(self)
+        tkinter.Message(msg, width=200, aspect=100, justify=tkinter.CENTER,
+                        text="Jeu de Abalone 3.3\n\n Maximin Duvillard"
+                        "\n Last update : 30/06/2018"
+                        "\n Licence = None").pack(padx=10, pady=10)
 
     def undo(self, event=None):
-        state = self.jeu.history.pop()
+        state = self.jeu.history.undo()
         self.jeu.state = state[0]
         self.jeu.counter = state[1].copy()
         self.jeu.player %= 2
@@ -409,14 +380,13 @@ class Ping(Frame):
     def mode(self):
         pass
 
-    def normal(self):
+    def normal_mode(self):
         self.jeu.mode = True
 
-    def split(self):
+    def split_mode(self):
         self.jeu.mode = False
 
 
 if __name__ == '__main__':
-    game = Tk()
-    Pg = Ping(game)
-    Pg.mainloop()
+    Ab = AbaloneGUI()
+    Ab.mainloop()

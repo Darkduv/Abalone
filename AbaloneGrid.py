@@ -1,3 +1,7 @@
+
+# TODO  very awkward implementation of the moves ???
+
+
 class AbaloneGrid(list):
     def __new__(cls, *args):
         instance = list.__new__(cls)
