@@ -35,6 +35,8 @@ def my_print(*args, **kwargs):
 
 class Panel(tkinter.Frame):
     """Panel de jeu (grille de n x m cases)"""
+    margin_int = 3
+    margin_ext = 5
 
     def __init__(self):
         # The panel of game is constituted of a re-scaling grid
@@ -102,27 +104,30 @@ class Panel(tkinter.Frame):
     def trace_grille(self):
         """Layout of the grid, in function of dimensions and options"""
         # maximal width and height possibles for the cases :
-        l_max = self.width / self.n_col
-        h_max = self.height / (1 + sqrt(3) * 4)
+
+        l_max = (self.width - 2 * self.margin_ext) / self.n_col
+        h_max = (self.height - 2 * self.margin_ext) * 2 / (2 + sqrt(3) * (self.n_lig - 1))
         # the side of a case would be the smallest of the two dimensions :
         self.cote = min(l_max, h_max)
         # -> establishment of new dimensions for the canvas :
-        wide, high = self.cote * self.n_col, self.cote * self.n_lig
+        wide, high = self.cote * self.n_col + 2*self.margin_ext,\
+            self.cote * (1 + (self.n_lig - 1)*sqrt(3)/2) + 2*self.margin_ext
         self.can.configure(width=wide, height=high)
         # Layout of the grid:
         self.can.delete(tkinter.ALL)  # erasing of the past Layouts
         # Layout of all the pawns,
         #   white or black according to the state of the game :
-        for l in range(self.n_lig):
-            x0 = (l - 4) * 1 / 2 * self.cote + 3
+        for lig in range(self.n_lig):
+            x0 = (lig - 4) * 1 / 2 * self.cote + self.margin_ext
             for c in range(self.n_col):
                 try:
-                    y1 = l * sqrt(3) / 2 * self.cote + 3  # size of pawns =
+                    y1 = self.margin_ext + lig * sqrt(3) / 2 * self.cote + self.margin_int  # size of pawns =
                     # size of the case -6
-                    y2 = (l * sqrt(3) / 2 + 1) * self.cote - 3
-                    x1 = c * self.cote + x0
-                    x2 = x1 + self.cote - 6
-                    color = ["dark olive green", "white", "black"][self.state[(l, c)]]
+                    y2 = y1 + self.cote - 2 * self.margin_int
+                    x1 = c * self.cote + x0 + self.margin_int
+                    x2 = x1 + self.cote - 2 * self.margin_int
+                    color = ["dark olive green", "white", "black"][
+                        self.state[lig, c]]
                     self.can.create_oval(x1, y1, x2, y2, outline="grey",
                                          width=1, fill=color)
                 except IndexError:
@@ -161,25 +166,32 @@ class Panel(tkinter.Frame):
 
     def get_space(self, event):
         """get the space linked to the event"""
-        lig = int(2 * event.y / (self.cote * sqrt(3) + sqrt(3) / 2 + 1))
-        col = int((event.x - (lig - 4) * 1 / 2 * self.cote) / self.cote)
+
+        item, = self.can.find_closest(event.x, event.y)
+        x0, y0, x1, y1 = self.can.coords(item)
+        x = (x0 + x1) / 2 - self.margin_ext
+        y = (y0 + y1) / 2 - self.margin_ext
+        h = self.cote * sqrt(3) / 2
+        lig = int(y / h + 1 - 2/sqrt(3))
+        col = int(x / self.cote - (lig - 4) * 1 / 2)
         try:
             self.state[lig, col]
         except IndexError:
             raise tools.InvalidActionError("Selected space not in grid")
-        return lig, col
+        return item, lig, col
 
     def click(self, event):
         """Management of the mouse click : move the pawns"""
         # We start to determinate the line and the columns of the pawn touched:
-        lig, col = self.get_space(event)
+        item, lig, col = self.get_space(event)
+        if not self.several_x_y:
+            self.several_x_y.append([])
         if not self.several_x_y[0]:
             if self.state[(lig, col)] == self.player:
                 self.several_x_y[0].append([lig, col])
-                self.can.itemconfig(self.can.find_closest(event.x, event.y), width=3, outline='red')
+                self.can.itemconfig(item, width=3, outline='red')
         else:
-
-            self.can.itemconfig(self.can.find_closest(event.x, event.y), width=3, outline='yellow')
+            self.can.itemconfig(item, width=3, outline='yellow')
             self.several_x_y.append([lig, col])
             if self.verify2(lig, col):
                 self.move()
@@ -189,11 +201,13 @@ class Panel(tkinter.Frame):
 
     def mouse_move(self, event):
         # We start to determinate the line and the columns of the pawn touched:
-        lig, col = self.get_space(event)
+        if len(self.several_x_y[0]) == 3:
+            return
+        item, lig, col = self.get_space(event)
         if len(self.several_x_y) == 1:
             if [lig, col] not in self.several_x_y[0] and self.verify1(lig, col):
                 self.several_x_y[0].append([lig, col])
-                self.can.itemconfig(self.can.find_closest(event.x, event.y), width=3, outline='red')
+                self.can.itemconfig(item, width=3, outline='red')
         else:
             pass
 
