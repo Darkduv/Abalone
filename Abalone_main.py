@@ -65,27 +65,43 @@ class Panel(tkinter.Frame):
         self.can.bind("<Button1-Motion>", self.mouse_move)
         self.can.bind("<Button1-ButtonRelease>", self.mouse_up)
         self.can.pack(side=tkinter.LEFT)
-        # self.can_bis = Label(text="player 1")
-        # self.can_bis.pack(side=RIGHT)
-        self.can_bis = tkinter.Canvas(self, bg="white", borderwidth=0,
-                                      highlightthickness=1,
-                                      highlightbackground="white")
-        self.turn = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 3,
-                                             text="White's\n turn", font="Helvetica 18 bold")
-        self.print_score = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 5,
-                                                    text="0 / 0", font="Helvetica 18 bold")
-        x1 = self.can_bis.winfo_width() / 3
-        y = self.can_bis.winfo_height() * 2 / 3
-        y1 = y - x1
-        x2 = x1 * 2
-        y2 = y + x1
-        self.turn_bis = self.can_bis.create_oval(x1, y1, x2, y2, outline="red", width=1, fill="white")
-        # self.can_bis = Label(text="Red's\n turn")
-        self.can_bis.pack(side=tkinter.RIGHT)
+        # self.side_panel = Label(text="player 1")
+        # self.side_panel.pack(side=RIGHT)
+        self.side_panel = tkinter.Canvas(self, bg="white", borderwidth=0,
+                                         highlightthickness=1,
+                                         highlightbackground="white")
+        self.side_panel.pack(side=tkinter.RIGHT,
+                             expand=tkinter.YES, fill=tkinter.BOTH)
+        self.message = tkinter.Label(self.side_panel, text="White's\n turn",
+                                     font="Helvetica 18 bold",
+                                     bg="white",
+                                     borderwidth=0)
+        self.message.place(relx=0.5, rely=0.33, anchor="center")
+        self.print_score = tkinter.Label(self.side_panel, text="0 / 0",
+                                         font="Helvetica 18 bold",
+                                         bg="white",
+                                         borderwidth=0)
+        self.print_score.place(relx=0.5, rely=0.2, anchor="center")
+
+        _side_canvas = tkinter.Canvas(self.side_panel,
+                                      bg="white", borderwidth=0,
+                                      highlightthickness=0,
+                                      width=80, height=80)
+        _side_canvas.place(relx=0.5, rely=0.666, anchor="center")
+        _circle = _side_canvas.create_oval(0, 0, 79, 79,
+                                           outline="red",
+                                           width=1, fill="white")
+
+        def _config_circle(fill):
+            _side_canvas.itemconfig(_circle, fill=fill)
+
+        self._config_message_circle = _config_circle
+
         self.player = 1
         self.counter = [0, 0]
         self.direction = [None, None]
-        self.tte_directions = [[-1, 0], [-1, 1], [1, -1], [0, 1], [0, -1], [1, 0]]
+        self.tte_directions = [[-1, 0], [-1, 1], [1, -1],
+                               [0, 1], [0, -1], [1, 0]]
         self.history = tools.SimpleHistoric()
         self.init_jeu()
 
@@ -106,7 +122,8 @@ class Panel(tkinter.Frame):
         # maximal width and height possibles for the cases :
 
         l_max = (self.width - 2 * self.margin_ext) / self.n_col
-        h_max = (self.height - 2 * self.margin_ext) * 2 / (2 + sqrt(3) * (self.n_lig - 1))
+        h_max = (self.height - 2 * self.margin_ext) * 2 / (
+                2 + sqrt(3) * (self.n_lig - 1))
         # the side of a case would be the smallest of the two dimensions :
         self.cote = min(l_max, h_max)
         # -> establishment of new dimensions for the canvas :
@@ -119,11 +136,10 @@ class Panel(tkinter.Frame):
         #   white or black according to the state of the game :
         for lig in range(self.n_lig):
             x0 = (lig - 4) * 1 / 2 * self.cote + self.margin_ext
+            y1 = self.margin_ext + lig * sqrt(3)/2 * self.cote + self.margin_int
+            y2 = y1 + self.cote - 2 * self.margin_int
             for c in range(self.n_col):
                 try:
-                    y1 = self.margin_ext + lig * sqrt(3) / 2 * self.cote + self.margin_int  # size of pawns =
-                    # size of the case -6
-                    y2 = y1 + self.cote - 2 * self.margin_int
                     x1 = c * self.cote + x0 + self.margin_int
                     x2 = x1 + self.cote - 2 * self.margin_int
                     color = ["dark olive green", "white", "black"][
@@ -132,37 +148,21 @@ class Panel(tkinter.Frame):
                                          width=1, fill=color)
                 except IndexError:
                     continue
-        # self.can_bis.destroy()
-        # self.can_bis = Label(text="Player{0}".format(["Big bug", "white", "black"][self.player]))
-        self.can_bis.configure(width=self.width - wide, height=self.height)
-        self.can_bis.delete(self.turn, self.turn_bis, self.print_score)
+        n_b, n_w = self.counter
+        if self.player % 2 == 1:
+            n_b, n_w = [n_b, n_w][::-1]
+        self.print_score.config(text=f"{n_b} / {n_w}")
         if 6 in self.counter:
             if self.counter[0] == 6:
                 nb = 1
             else:
                 nb = 0
-            self.turn = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 3,
-                                                 text=["White", "Black"][nb] + " has won",
-                                                 font="Helvetica 18 bold")
+            self.message.config(text=["White", "Black"][nb] + " has won")
             return  # ?
         else:
-            self.turn = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 3,
-                                                 text=["Bug", "White", "Black"][self.player] + "'s\n turn",
-                                                 font="Helvetica 18 bold")
-        n_b, n_w = self.counter
-        if self.player % 2 == 1:
-            n_b, n_w = [n_b, n_w][::-1]
-        self.print_score = self.can_bis.create_text(self.can_bis.winfo_width() / 2, self.can_bis.winfo_height() / 5,
-                                                    text="{0} / {1}".format(n_b, n_w), font="Helvetica 18 bold")
-        x = self.can_bis.winfo_width() / 3
-        y = self.can_bis.winfo_height() / 3
-        r = min([x, y, 40])
-        y1 = y * 2 - r
-        x1 = 3 * x / 2 - r
-        x2 = 3 * x / 2 + r
-        y2 = y * 2 + r
-        self.turn_bis = self.can_bis.create_oval(x1, y1, x2, y2, outline="red",
-                                                 width=1, fill=["red", "white", "black"][self.player])
+            self.message.config(
+                text=["Bug", "White", "Black"][self.player] + "'s\n turn")
+        self._config_message_circle(["red", "white", "black"][self.player])
 
     def get_space(self, event):
         """get the space linked to the event"""
@@ -237,7 +237,8 @@ class Panel(tkinter.Frame):
                         c2 += c
                     self.state[(l2, c2)] = self.state[l2-l, c2-c]
                 except IndexError:
-                    print("Player " + ["white", "black"][(self.player % 2)] + " has lost a marble")
+                    print(f"Player {['white', 'black'][(self.player % 2)]}"
+                          f" has lost a marble")
                     self.counter[self.player % 2] += 1
                     print(self.counter)
                 for i in range(nb_marble-1, 0, -1):
