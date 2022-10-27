@@ -33,7 +33,6 @@ def my_print(*args, **kwargs):
 ###########################################
 
 
-
 class Panel(tkinter.Frame):
     """Panel de jeu (grille de n x m cases)"""
 
@@ -85,8 +84,6 @@ class Panel(tkinter.Frame):
         self.counter = [0, 0]
         self.direction = [None, None]
         self.tte_directions = [[-1, 0], [-1, 1], [1, -1], [0, 1], [0, -1], [1, 0]]
-        # [[-1, 0], [-1, 1], [-1, -1], [0, 1], [0, -1], [1, -1]]  # TODO : ?
-        # Todo : why not same list ?
         self.history = tools.SimpleHistoric()
         self.init_jeu()
 
@@ -162,15 +159,20 @@ class Panel(tkinter.Frame):
         self.turn_bis = self.can_bis.create_oval(x1, y1, x2, y2, outline="red",
                                                  width=1, fill=["red", "white", "black"][self.player])
 
-    def click(self, event):
-        """Management of the mouse click : move the pawns"""
-        # We start to determinate the line and the columns of the pawn touched:
+    def get_space(self, event):
+        """get the space linked to the event"""
         lig = int(2 * event.y / (self.cote * sqrt(3) + sqrt(3) / 2 + 1))
         col = int((event.x - (lig - 4) * 1 / 2 * self.cote) / self.cote)
         try:
             self.state[lig, col]
         except IndexError:
-            return
+            raise tools.InvalidActionError("Selected space not in grid")
+        return lig, col
+
+    def click(self, event):
+        """Management of the mouse click : move the pawns"""
+        # We start to determinate the line and the columns of the pawn touched:
+        lig, col = self.get_space(event)
         if not self.several_x_y[0]:
             if self.state[(lig, col)] == self.player:
                 self.several_x_y[0].append([lig, col])
@@ -187,12 +189,7 @@ class Panel(tkinter.Frame):
 
     def mouse_move(self, event):
         # We start to determinate the line and the columns of the pawn touched:
-        lig = int(2 * event.y / (self.cote * sqrt(3) + sqrt(3) / 2 + 1))
-        col = int((event.x - (lig - 4) * 1 / 2 * self.cote) / self.cote)
-        try:
-            self.state[lig, col]
-        except IndexError:
-            return
+        lig, col = self.get_space(event)
         if len(self.several_x_y) == 1:
             if [lig, col] not in self.several_x_y[0] and self.verify1(lig, col):
                 self.several_x_y[0].append([lig, col])
