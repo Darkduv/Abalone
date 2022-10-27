@@ -2,7 +2,7 @@ from math import sqrt
 import tkinter
 from time import gmtime, asctime
 
-from Abalone.AbaloneGrid import AbaloneGrid
+from Abalone.AbaloneGrid import AbaloneGrid, AbaloneType
 
 from game_tools import gui, tools
 # see https://github.com/Darkduv/Games # game_tools
@@ -43,7 +43,7 @@ class Panel(tkinter.Frame):
         # cases (squared) of the grid, et the dimensions of the
         # canvas are adapted in consequence.
         super().__init__()
-        self.mode = True  # Split=False or Normal=True
+        self.mode = AbaloneType.NORMAL
         self.n_lig, self.n_col = 9, 9  # initial grid = 9 x 9
         self.state = AbaloneGrid()
 
@@ -378,10 +378,10 @@ class AbaloneGUI(tkinter.Tk):
         pass
 
     def normal_mode(self):
-        self.jeu.mode = True
+        self.jeu.mode = AbaloneType.NORMAL
 
     def split_mode(self):
-        self.jeu.mode = False
+        self.jeu.mode = AbaloneType.SPLIT
 
 
 if __name__ == '__main__':

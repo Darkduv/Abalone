@@ -1,86 +1,77 @@
+from enum import Enum
 
 # TODO  very awkward implementation of the moves ???
 
 
-class AbaloneGrid(list):
-    def __new__(cls, *args):
-        instance = list.__new__(cls)
-        return instance
+class AbaloneType(Enum):
+    NORMAL = [
+        [None, None, None, None, 1, 1, 1, 1, 1],
+        [None, None, None, 1, 1, 1, 1, 1, 1],
+        [None, None, 0, 0, 1, 1, 1, 0, 0],
+        [None, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, None],
+        [0, 0, 2, 2, 2, 0, 0, None, None],
+        [2, 2, 2, 2, 2, 2, None, None, None],
+        [2, 2, 2, 2, 2, None, None, None, None]
+    ]
+    SPLIT = [
+        [None, None, None, None, 1, 1, 0, 2, 2],
+        [None, None, None, 1, 1, 1, 2, 2, 2],
+        [None, None, 0, 1, 1, 0, 2, 2, 0],
+        [None, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, None],
+        [0, 0, 2, 2, 2, 0, 0, None, None],
+        [2, 2, 2, 2, 2, 2, None, None, None],
+        [2, 2, 2, 2, 2, None, None, None, None]
+    ]
 
-    def __init__(self, normal=True):
-        """
+    def copy(self):
+        return [row[:] for row in self.value]
 
-        :type self: list
-        """
-        grid = [[0] * 9] * 9  # 0 = vacuum case
-        grid[3] = [None, 0, 0, 0, 0, 0, 0, 0, 0]
-        grid[5] = [0, 0, 0, 0, 0, 0, 0, 0, None]
-        if normal:
-            grid[0] = [None, None, None, None, 1, 1, 1, 1, 1]
-            grid[1] = [None, None, None, 1, 1, 1, 1, 1, 1]
-            grid[2] = [None, None, 0, 0, 1, 1, 1, 0, 0]
-            grid[6] = [0, 0, 2, 2, 2, 0, 0, None, None]
-            grid[7] = [2, 2, 2, 2, 2, 2, None, None, None]
-            grid[8] = [2, 2, 2, 2, 2, None, None, None, None]
 
-        else:
-            grid[0] = [None, None, None, None, 1, 1, 0, 2, 2]
-            grid[1] = [None, None, None, 1, 1, 1, 2, 2, 2]
-            grid[2] = [None, None, 0, 1, 1, 0, 2, 2, 0]
-            grid[6] = [0, 2, 2, 0, 1, 1, 0, None, None]
-            grid[7] = [2, 2, 2, 1, 1, 1, None, None, None]
-            grid[8] = [2, 2, 0, 1, 1, None, None, None, None]
-        super().__init__(grid)
+class AbaloneGrid:
+
+    def __init__(self, type_: AbaloneType = AbaloneType.NORMAL):
+        grid = type_.copy()
+        self.grid = grid
+
+    @staticmethod
+    def in_grid(item):
+        i, j = item
+        return 0 <= i < 9 and 0 <= j < 9
 
     def __getitem__(self, item):
-        try:
-            i, j = item
-            if i < 0 or j < 0:
-                raise IndexError("Out of the grid")
-            if list.__getitem__(self, i)[j] is None:
-                raise IndexError("Out of the grid")
-            else:
-                return list.__getitem__(self, i)[j]
-        except IndexError:
+        i, j = item
+        if not self.in_grid(item):
             raise IndexError("Out of the grid")
-        except TypeError:
-            return list.__getitem__(self, item)
+        val = self.grid[i][j]
+        if val is None:
+            raise IndexError("Out of the grid")
+        return val
 
     def __setitem__(self, key, value):
-        try:
-            i, j = key
-            if self[i, j] is None:
-                raise IndexError("Out of the grid")
-            else:
-                list.__setitem__(self[i], j, value)
-        except IndexError:
+        if not self.in_grid(key):
             raise IndexError("Out of the grid")
-        except TypeError:
-            list.__setitem__(self, key, value)
+        i, j = key
+        if self.grid[i][j] is None:
+            raise IndexError("Out of the grid")
+        else:
+            self.grid[i][j] = value
 
     def __str__(self):
         s = ""
+        count = 4
         for i in range(9):
-            s += str(self[i])
-            s += "\n"
+            s += "\n" if i != 0 else ""
+            s += " "*abs(count)
+            s += " ".join(".OX"[a] for a in self.grid[i] if a is not None)
+            count -= 1
         return s
-
-    def __contains__(self, item):
-        for i in range(9):
-            for j in range(9):
-                try:
-                    if self[i, j] == item:
-                        return True
-                except IndexError:
-                    pass
-        return False
-
-    def __iter__(self):
-        print("hello")
-        return list.__iter__(self)
 
     def copy(self):
         cop = AbaloneGrid()
         for i in range(9):
-            cop[i] = self[i].copy()
+            cop.grid[i] = self.grid[i][:]
         return cop
