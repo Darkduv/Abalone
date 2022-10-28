@@ -101,6 +101,7 @@ class Panel(tkinter.Frame):
         self.init_jeu()
 
     def init_jeu(self):
+        self.game.init_game()
         self.trace_grille()
 
     def rescale(self, event):
@@ -238,13 +239,13 @@ class AbaloneGUI(tkinter.Tk):
         self.title(" Game of abalone")
 
         menu_config = [
-            ('File', [('Restart', self.reset),
-                      ('Quit', self.destroy),
-                      ('Undo', self.undo)]),
-            ('Help', [('Principle of the game', self.principle),
-                      ('About...', self.about)]),
+            ('File', [('Undo', self.undo),
+                      ('Restart', self.reset),
+                      ('Quit', self.destroy)]),
             ('Options', [('Normal', self.normal_mode),
-                         ('Split', self.split_mode)])
+                         ('Split', self.split_mode)]),
+            ('Help', [('Principle of the game', self.principle),
+                      ('About...', self.about)])
         ]
         # add options borderwidth=2, relief=GROOVE to Menu ?
         self.m_bar = gui.RecursiveMenuBar(self)
@@ -259,9 +260,6 @@ class AbaloneGUI(tkinter.Tk):
     def reset(self, event=None):
         """  french!  """
         self.jeu.history = tools.SimpleHistoric()
-        self.jeu.game = AbaloneGame(self.jeu.mode)
-        self.jeu.counter = [0, 0]
-        self.jeu.player = 1
         self.jeu.init_jeu()
 
     def principle(self):
@@ -286,9 +284,6 @@ class AbaloneGUI(tkinter.Tk):
         state = self.jeu.history.undo()
         self.jeu.game = state
         self.jeu.trace_grille()
-
-    def mode(self):
-        pass
 
     def normal_mode(self):
         self.jeu.mode = AbaloneType.NORMAL
