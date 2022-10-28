@@ -39,28 +39,22 @@ class AbaloneGrid:
         grid = type_.copy()
         self.grid = grid
 
-    @staticmethod
-    def in_grid(item):
+    def in_grid(self, item):
         i, j = item
-        return 0 <= i < 9 and 0 <= j < 9
+        return 0 <= i < 9 and 0 <= j < 9 and self.grid[i][j] is not None
 
     def __getitem__(self, item):
         i, j = item
         if not self.in_grid(item):
             raise IndexError("Out of the grid")
         val = self.grid[i][j]
-        if val is None:
-            raise IndexError("Out of the grid")
         return val
 
     def __setitem__(self, key, value):
         if not self.in_grid(key):
             raise IndexError("Out of the grid")
         i, j = key
-        if self.grid[i][j] is None:
-            raise IndexError("Out of the grid")
-        else:
-            self.grid[i][j] = value
+        self.grid[i][j] = value
 
     def __str__(self):
         s = ""
@@ -104,6 +98,11 @@ class Position:
     def __eq__(self, other):
         return self.row == self.col
 
+    def __str__(self):
+        return f"Pos({self.row}, {self.col})"
+
+    __repr__ = __str__
+
 
 class TypeAction(Enum):
     INLINE = "Inline"
@@ -146,19 +145,19 @@ class AbaloneGame(tools.GameNPlayer):
             raise ValueError("Wrong action type")
         pos = selection[0]
         opp = (self.player + 1) % 2
-        next_val = self._not_a_player
+        next_val = self.grid[pos]
+        self.grid[pos] = self._not_a_player
         for _ in range(nb_marbles):
-            pos2 = pos+move
-            val, next_val = next_val, self.grid[pos]
-            self.grid[pos] = val
+            pos += move
             try:
-                self.grid[pos2] = val
+                val, next_val = next_val, self.grid[pos]
+                self.grid[pos] = val
             except IndexError:
                 self.marbles_down[opp] += 1
+                print(f"Player {['white', 'black'][opp]} has lost a marble")
                 win = self.win(action) >= 0
                 if win:
                     return True
-            pos = pos2
         self.next_player()
         return False
 
@@ -242,6 +241,14 @@ class AbaloneGame(tools.GameNPlayer):
         s += str(self.grid)
         return s
 
+    def copy(self):
+        cop = AbaloneGame(self.type_)
+        cop.grid = self.grid.copy()
+        cop.turn = self.turn
+        cop.player = self.player
+        cop.marbles_down = self.marbles_down[:]
+        return cop
+
 
 if __name__ == "__main__":
     ab = AbaloneGame()
@@ -250,6 +257,7 @@ if __name__ == "__main__":
     ab.play(action_)
     print(ab)
     action_ = ([Position(6, 2), Position(6, 3), Position(6, 4)], Position(5, 2))
+    # action_ = ([Position(8, 0)], Position(7, 1))
     print("===== Action 2 =====")
     ab.play(action_)
     print(ab)
