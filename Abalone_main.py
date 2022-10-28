@@ -2,7 +2,7 @@ from math import sqrt
 import tkinter
 from time import gmtime, asctime
 
-from Abalone.AbaloneGrid import AbaloneGrid, AbaloneType
+from Abalone.AbaloneGrid import AbaloneType, AbaloneGame, Position, TypeAction
 
 from game_tools import gui, tools
 # see https://github.com/Darkduv/Games # game_tools
@@ -47,7 +47,7 @@ class Panel(tkinter.Frame):
         super().__init__()
         self.mode = AbaloneType.NORMAL
         self.n_lig, self.n_col = 9, 9  # initial grid = 9 x 9
-        self.state = AbaloneGrid()
+        self.game = AbaloneGame(self.mode)
 
         # Link of the event <resize> with an adapted manager :
         self.bind("<Configure>", self.rescale)
@@ -58,9 +58,9 @@ class Panel(tkinter.Frame):
         self.width, self.height = 2, 2
         self.cote = 0
 
+        self._action = [[]]
         # Link of the event <click of the mouse> with its manager :
 
-        self.several_x_y = [[]]
         self.can.bind("<Button-1>", self.click)
         self.can.bind("<Button1-Motion>", self.mouse_move)
         self.can.bind("<Button1-ButtonRelease>", self.mouse_up)
@@ -97,11 +97,6 @@ class Panel(tkinter.Frame):
 
         self._config_message_circle = _config_circle
 
-        self.player = 1
-        self.counter = [0, 0]
-        self.direction = [None, None]
-        self.tte_directions = [[-1, 0], [-1, 1], [1, -1],
-                               [0, 1], [0, -1], [1, 0]]
         self.history = tools.SimpleHistoric()
         self.init_jeu()
 
@@ -120,7 +115,6 @@ class Panel(tkinter.Frame):
     def trace_grille(self):
         """Layout of the grid, in function of dimensions and options"""
         # maximal width and height possibles for the cases :
-
         l_max = (self.width - 2 * self.margin_ext) / self.n_col
         h_max = (self.height - 2 * self.margin_ext) * 2 / (
                 2 + sqrt(3) * (self.n_lig - 1))
@@ -142,18 +136,18 @@ class Panel(tkinter.Frame):
                 try:
                     x1 = c * self.cote + x0 + self.margin_int
                     x2 = x1 + self.cote - 2 * self.margin_int
-                    color = ["dark olive green", "white", "black"][
-                        self.state[lig, c]]
+                    color = [None, "white", "black"][
+                        self.game.grid[lig, c]]
                     self.can.create_oval(x1, y1, x2, y2, outline="grey",
                                          width=1, fill=color)
                 except IndexError:
                     continue
-        n_b, n_w = self.counter
-        if self.player % 2 == 1:
+        n_b, n_w = self.game.marbles_down
+        if self.game.player % 2 == 1:
             n_b, n_w = [n_b, n_w][::-1]
         self.print_score.config(text=f"{n_b} / {n_w}")
-        if 6 in self.counter:
-            if self.counter[0] == 6:
+        if 6 in self.game.marbles_down:
+            if self.game.marbles_down[0] == 6:
                 nb = 1
             else:
                 nb = 0
@@ -161,8 +155,9 @@ class Panel(tkinter.Frame):
             return  # ?
         else:
             self.message.config(
-                text=["Bug", "White", "Black"][self.player] + "'s\n turn")
-        self._config_message_circle(["red", "white", "black"][self.player])
+                text=[None, "White", "Black"][self.game.player+1] + "'s\n turn")
+        self._config_message_circle(
+            ["red", "white", "black"][self.game.player+1])
 
     def get_space(self, event):
         """get the space linked to the event"""
@@ -175,7 +170,7 @@ class Panel(tkinter.Frame):
         lig = int(y / h + 1 - 2/sqrt(3))
         col = int(x / self.cote - (lig - 4) * 1 / 2)
         try:
-            self.state[lig, col]
+            self.game.grid[lig, col]
         except IndexError:
             raise tools.InvalidActionError("Selected space not in grid")
         return item, lig, col
@@ -184,136 +179,54 @@ class Panel(tkinter.Frame):
         """Management of the mouse click : move the pawns"""
         # We start to determinate the line and the columns of the pawn touched:
         item, lig, col = self.get_space(event)
-        if not self.several_x_y:
-            self.several_x_y.append([])
-        if not self.several_x_y[0]:
-            if self.state[(lig, col)] == self.player:
-                self.several_x_y[0].append([lig, col])
+        pos = Position(lig, col)
+        if not self._action:
+            self._action.append([])
+        if not self._action[0]:
+            try:
+                ok = self.game.check_selection([pos])
+            except tools.InvalidActionError:  # ?
+                self._action = [[]]
+                self.trace_grille()
+                return
+            if ok:
+                self._action[0].append(pos)
                 self.can.itemconfig(item, width=3, outline='red')
         else:
             self.can.itemconfig(item, width=3, outline='yellow')
-            self.several_x_y.append([lig, col])
-            if self.verify2(lig, col):
+            self._action.append(pos)
+            try:
+                type_action, _ = self.game.check_action(*self._action)
+            except tools.InvalidActionError:
+                self._action = [[]]
+                self.trace_grille()
+                return
+            if type_action != TypeAction.INVALID:
                 self.move()
             else:
                 self.trace_grille()
-            self.several_x_y = [[]]
+            self._action = [[]]
 
     def mouse_move(self, event):
         # We start to determinate the line and the columns of the pawn touched:
-        if len(self.several_x_y[0]) == 3:
+        if len(self._action[0]) == 3:
             return
         item, lig, col = self.get_space(event)
-        if len(self.several_x_y) == 1:
-            if [lig, col] not in self.several_x_y[0] and self.verify1(lig, col):
-                self.several_x_y[0].append([lig, col])
-                self.can.itemconfig(item, width=3, outline='red')
-        else:
-            pass
+        pos = Position(lig, col)
+        if len(self._action) != 1:
+            return
+        if self.game.check_selection(self._action[0] + [pos]):
+            self._action[0].append(pos)
+            self.can.itemconfig(item, width=3, outline='red')
 
     def mouse_up(self, event):
         pass
 
     def move(self):
         # todo : for the moment saving blindly, check if move is possible ?
-        self.history.save_new([self.state.copy(), self.counter.copy()])
-        l2, c2 = self.several_x_y[1]
-        l1, c1 = self.several_x_y[0][0]
-        direction = l2 - l1, c2 - c1
-        l, c = direction
-        if len(self.several_x_y[0]) == 1:
-            if self.state[l2, c2] == 0:
-                self.state[l2, c2] = self.player
-                self.state[l1, c1] = 0
-                self.player %= 2
-                self.player += 1
-                self.trace_grille()
-            else:
-                nb_marble = 1
-                try:
-                    while self.state[(l2, c2)] != 0:
-                        nb_marble += 1
-                        l2 += l
-                        c2 += c
-                    self.state[(l2, c2)] = self.state[l2-l, c2-c]
-                except IndexError:
-                    print(f"Player {['white', 'black'][(self.player % 2)]}"
-                          f" has lost a marble")
-                    self.counter[self.player % 2] += 1
-                    print(self.counter)
-                for i in range(nb_marble-1, 0, -1):
-                    self.state[l2-l, c2-c] = self.state[l2-2*l, c2-2*c]
-                    l2 -= l
-                    c2 -= c
-                self.state[l1, c1] = 0
-                self.player %= 2
-                self.player += 1
-                self.trace_grille()
-        else:
-            for pawn in self.several_x_y[0][::-1]:
-                i, j = pawn
-                self.state[(i + l, j + c)] = self.player
-                self.state[(i, j)] = 0
-            self.player %= 2
-            self.player += 1
-            self.trace_grille()
-
-    def verify2(self, lig, col):
-        x, y = self.several_x_y[0][0]
-        l, c = lig - x, col - y  # todo : here for legal move of one case ?
-        if [l, c] not in self.tte_directions:
-            my_print("Too long move")
-            return False
-        if len(self.several_x_y[0]) != 1:
-            for [i, j] in self.several_x_y[0]:
-                if self.state[i + l, j + c] != 0:
-                    return False
-            return True
-        # else:
-        if self.state[lig, col] == 0:
-            return True
-        if self.state[lig, col] != self.player:
-            return False
-        nb_player = 1
-        try:
-            while self.state[(x + l, y + c)] == self.player:
-                x += l
-                y += c
-                nb_player += 1
-                if nb_player > 3:
-                    return False
-        except IndexError:
-            return False
-        nb_enemy = 0
-        try:
-            while nb_enemy < nb_player \
-                    and self.state[x+l, y+c] == (self.player % 2 + 1):
-                nb_enemy += 1
-                x += l
-                y += c
-        except IndexError:  # pushing opponent's marble outside
-            my_print("... ... ...")
-            return True
-        if nb_enemy >= nb_player:
-            my_print("it's forbidden")
-            return False
-        if self.state[x+l, y+c] == self.player:
-            return False
-        return True
-
-    def verify1(self, lig, col):
-        if self.state[lig, col] != self.player:
-            return False
-        x, y = self.several_x_y[0][-1]
-        d1, d2 = lig - x, col - y
-        if not [d1, d2] in self.tte_directions:
-            return False
-        if len(self.several_x_y[0]) >= 3:
-            return False
-        if len(self.several_x_y[0]) == 2:
-            x1, y1 = self.several_x_y[0][0]
-            return x - x1 == d1 and y - y1 == d2
-        return True
+        self.history.save_new(self.game.copy())
+        _ = self.game.play(tuple(self._action))
+        self.trace_grille()
 
 
 class AbaloneGUI(tkinter.Tk):
@@ -321,7 +234,7 @@ class AbaloneGUI(tkinter.Tk):
 
     def __init__(self):
         super().__init__()
-        self.geometry("900x750")
+        self.geometry("950x750")
         self.title(" Game of abalone")
 
         menu_config = [
@@ -346,7 +259,7 @@ class AbaloneGUI(tkinter.Tk):
     def reset(self, event=None):
         """  french!  """
         self.jeu.history = tools.SimpleHistoric()
-        self.jeu.state = AbaloneGrid(self.jeu.mode)
+        self.jeu.game = AbaloneGame(self.jeu.mode)
         self.jeu.counter = [0, 0]
         self.jeu.player = 1
         self.jeu.init_jeu()
@@ -371,10 +284,7 @@ class AbaloneGUI(tkinter.Tk):
 
     def undo(self, event=None):
         state = self.jeu.history.undo()
-        self.jeu.state = state[0]
-        self.jeu.counter = state[1].copy()
-        self.jeu.player %= 2
-        self.jeu.player += 1
+        self.jeu.game = state
         self.jeu.trace_grille()
 
     def mode(self):
