@@ -2,7 +2,7 @@ from math import sqrt
 import tkinter
 from time import gmtime, asctime
 
-from Abalone.AbaloneGrid import AbaloneType, AbaloneGame, Position, TypeAction
+from AbaloneGrid import AbaloneType, AbaloneGame, Position, TypeAction
 
 from game_tools import gui, tools
 # see https://github.com/Darkduv/Games # game_tools
